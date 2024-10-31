@@ -2,13 +2,30 @@ import os
 
 import pandas as pd
 import streamlit as st
+import argparse
+
+parser = argparse.ArgumentParser(description='This app lists animals')
+
+parser.add_argument('--cloud', action='store_true', default=False,
+                    help="If passed, set the session type to cloud")
+try:
+    args = parser.parse_args()
+except SystemExit as e:
+    # This exception will be raised if --help or invalid command line arguments
+    # are used. Currently streamlit prevents the program from exiting normally
+    # so we have to do a hard exit.
+    os._exit(e.code)
+
+if args.cloud:
+    st.session_state.app_type = "CLOUD"
 
 # Initiate Session State Values
 if "instantiated" not in st.session_state:
 
     # App type ('DESKTOP' or 'CLOUD')
-    st.session_state.app_type = "CLOUD"
-    st.session_state.app_type = "DESKTOP"
+    if "app_type" not in st.session_state:
+        #st.session_state.app_type = "CLOUD"
+        st.session_state.app_type = "DESKTOP"
 
     # Dataframe to keep plot ids
     st.session_state.plots = pd.DataFrame(

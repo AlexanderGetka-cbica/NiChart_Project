@@ -2,6 +2,7 @@ import os
 
 import pandas as pd
 import streamlit as st
+import re
 import utils.utils_muse as utilmuse
 import utils.utils_nifti as utilni
 import utils.utils_st as utilst
@@ -78,9 +79,12 @@ with st.expander(":material/grid_on: Segment image", expanded=False):
 
     # Device type
     helpmsg = "Choose 'cuda' if your computer has an NVIDIA GPU, 'mps' if you have an Apple M-series chip, and 'cpu' if you have a standard CPU."
-    device = utilst.user_input_select(
-        "Device", ["cuda", "cpu", "mps"], "dlmuse_sel_device", helpmsg
-    )
+    if st.session_state.app_type == "CLOUD":
+        device = "cuda"
+    else:
+        device = utilst.user_input_select(
+            "Device", ["cuda", "cpu", "mps"], "dlmuse_sel_device", helpmsg
+        )
 
     # Button to run DLMUSE
     flag_btn = os.path.exists(st.session_state.paths["T1"])
@@ -92,7 +96,7 @@ with st.expander(":material/grid_on: Segment image", expanded=False):
             os.makedirs(st.session_state.paths["DLMUSE"])
 
         with st.spinner("Wait for it..."):
-            dlmuse_cmd = f"NiChart_DLMUSE -i {st.session_state.paths['T1']} -o {st.session_state.paths['DLMUSE']} -d {device}"
+            dlmuse_cmd = f"NiChart_DLMUSE -i {st.session_state.paths['T1']} -o {st.session_state.paths['DLMUSE']} -d {device} --dlmuse_args '-nps 1 -npp 1' --dlicv_args '-nps 1 -npp 1'"
             st.info(f"Running: {dlmuse_cmd}", icon=":material/manufacturing:")
 
             # FIXME : bypass dlmuse run
@@ -135,13 +139,16 @@ with st.expander(":material/visibility: View segmentations", expanded=False):
     is_show_overlay = st.checkbox("Show overlay", True)
 
     # Select images
+    ## FIXME: at least on cloud, can get here with multiple _T1 appended (see marked lines)
     flag_img = False
     if sel_mrid is not None:
         st.session_state.paths["sel_img"] = os.path.join(
-            st.session_state.paths["T1"], sel_mrid + st.session_state.suff_t1img
+            ## hardcoded fix for T1 suffix
+            st.session_state.paths["T1"], re.sub(r"_T1$", "", sel_mrid)  + st.session_state.suff_t1img
         )
         st.session_state.paths["sel_seg"] = os.path.join(
-            st.session_state.paths["DLMUSE"], sel_mrid + st.session_state.suff_seg
+            ## hardcoded fix for T1 suffix 
+            st.session_state.paths["DLMUSE"], re.sub(r"_T1$", "", sel_mrid) + st.session_state.suff_seg
         )
 
         flag_img = os.path.exists(st.session_state.paths["sel_img"]) and os.path.exists(
